@@ -1,14 +1,20 @@
-"""
-Test that your local environment can successfully connect to the OpenAI API.
+"""Test that your local environment can successfully connect to the OpenAI API.
 
 If this script runs without errors and prints a short response,
 your setup is correct.
 """
 
-from openai import OpenAI
 import os
 
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# Load environment variables from .env file
+load_dotenv()
+
+
 def main():
+    """Test the OpenAI API connection."""
     # Check that the API key is available
     if not os.getenv("OPENAI_API_KEY"):
         raise ValueError(
@@ -21,13 +27,13 @@ def main():
 
     # Simple prompt
     response = client.responses.create(
-        model="gpt-5-mini",
-        input="Say hello in one short sentence."
+        model="gpt-5-mini", input="Say hello in one short sentence."
     )
 
     print("\n✅ Connection successful!\n")
     print("Model response:")
     print(response.output_text)
+
 
 if __name__ == "__main__":
     main()
