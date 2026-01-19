@@ -124,7 +124,7 @@ Even basic tasks often require importing libraries.
 **Run this command:**
 
 ```bash
-just get-started
+just venv
 ```
 
 **This command:**
