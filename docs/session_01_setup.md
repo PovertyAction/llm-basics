@@ -552,4 +552,10 @@ Everything else builds on these fundamentals.
 
 ---
 
+## Acknowledgments
+
+Some exercises and examples in this session were adapted from or inspired by the [Azure Python OpenAI Samples](https://github.com/Azure-Samples/python-openai-demos) repository.
+
+---
+
 **Ready for more?** Move on to Session 02 to learn about embeddings and RAG.
