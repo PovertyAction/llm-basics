@@ -3,7 +3,7 @@
 This script:
 - Reads the IPA Best Bets document in English
 - Translates it to Spanish using OpenAI
-- Saves the Spanish version to the docs folder
+- Saves the Spanish version to the data folder
 """
 
 from pathlib import Path
@@ -48,10 +48,10 @@ def translate_to_spanish(text: str) -> str:
 
 
 def main():
-    """Translate the IPA Best Bets document and save to docs folder."""
+    """Translate the IPA Best Bets document and save to data folder."""
     # Define file paths
     input_file = Path("data/ipa-best-bets-2025.md")
-    output_file = Path("docs/ipa-best-bets-2025-es.md")
+    output_file = Path("data/ipa-best-bets-2025-es.md")
 
     print(f"\n📖 Reading {input_file}...")
 
@@ -67,7 +67,7 @@ def main():
 
     print(f"✅ Translation complete ({len(spanish_text)} characters)")
 
-    # Create docs directory if it doesn't exist
+    # Create data directory if it doesn't exist
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Save the Spanish translation

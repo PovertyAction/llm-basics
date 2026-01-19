@@ -320,12 +320,45 @@ python examples/function_calling_basic.py
 
 ```text
 Model chose to call: lookup_weather
-Arguments: {"location": "San Francisco", "unit": "celsius"}
+Arguments: {"city_name": "Bogota"}
 ```
 
 ---
 
-**2. Document translation (`translate_ipa_document.py`)**
+**2. Function calling with execution (`function_calling_call.py`)**
+
+```bash
+python examples/function_calling_call.py
+```
+
+**What it does:**
+
+- Extends the basic example by ACTUALLY executing the function
+- Declares the `lookup_weather` function schema
+- When the model requests it, executes the function with provided arguments
+- Returns mock weather data (18°C in Celsius)
+
+**What to observe:**
+
+- How to parse tool call arguments from JSON
+- How to execute functions based on model decisions
+- The complete function calling workflow
+
+**Example output:**
+
+```text
+Model chose to call: lookup_weather
+Arguments: {"city_name": "Bogota"}
+
+🌤️  Looking up weather for Bogota...
+Function result: Currently 18°C and partly cloudy
+```
+
+**Key insight:** The model decides WHEN to call, YOUR code decides HOW to execute.
+
+---
+
+**3. Document translation (`translate_ipa_document.py`)**
 
 ```bash
 python examples/translate_ipa_document.py
@@ -335,7 +368,7 @@ python examples/translate_ipa_document.py
 
 - Reads the IPA Best Bets document in English (from `data/`)
 - Translates the entire document to Spanish using OpenAI
-- Saves the Spanish version to `docs/ipa-best-bets-2025-es.md`
+- Saves the Spanish version to `data/ipa-best-bets-2025-es.md`
 - Preserves all markdown formatting
 
 **What to observe:**
@@ -405,7 +438,7 @@ tool_calls = response.choices[0].message.tool_calls
 
 ---
 
-## Quick exercises (if time allows)
+## Quick exercises (After the training session)
 
 **Chat completions:**
 
@@ -415,9 +448,10 @@ tool_calls = response.choices[0].message.tool_calls
 
 **Function calling:**
 
-1. Add a new parameter to `lookup_weather` (e.g., `forecast_days`)
-2. Create a new function declaration for a different task
-3. Test what happens when you ask a question that shouldn't trigger the function
+1. Compare `function_calling_basic.py` vs `function_calling_call.py` — what's the difference?
+2. Modify the question in `function_calling_call.py` to ask about a different city
+3. Add a new parameter to `lookup_weather` (e.g., `forecast_days`)
+4. Test what happens when you ask a question that shouldn't trigger the function
 
 ---
 
