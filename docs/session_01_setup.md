@@ -7,10 +7,12 @@ By the end of this session, you will be able to:
 - work locally in a Python project,
 - understand what it means to use an LLM via an API,
 - securely configure an API key,
-- run a first successful request to a Large Language Model from your computer.
+- run a first successful request to a Large Language Model from your computer,
+- understand chat completions and streaming responses,
+- explore function calling (tools) with LLMs.
 
 This session focuses on **infrastructure and fundamentals**.
-We are not building an application yet, we are making sure the foundation works.
+We are not building an application yet — we are making sure the foundation works.
 
 ---
 
@@ -37,7 +39,7 @@ This interaction is handled through an **API (Application Programming Interface)
 
 Most LLM-based workflows follow the same high-level structure:
 
-```
+```text
 Input (text, audio, data)
 ↓
 LLM API call
@@ -67,8 +69,9 @@ To access an LLM API, you need an API key.
 In this project, API keys are stored as environment variables.
 
 You should have a file called `.env` (not committed to Git) containing:
-```
-OPENAI_API_KEY=your_key_here
+
+```bash
+OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 Your code reads this key at runtime, without exposing it publicly.
@@ -142,9 +145,7 @@ just venv
 | Nushell | `overlay use .venv/Scripts/activate.nu` |
 
 **What to observe:**
-
 You should now see your terminal indicating an active environment (usually shows `.venv` in the prompt).
-(llm-basics)
 
 ---
 
@@ -155,7 +156,7 @@ Before doing anything complex, we always test the connection.
 **Run this script:**
 
 ```bash
-python examples/01_test_connection.py
+python examples\test_connection.py
 ```
 
 **This script does exactly one thing:**
@@ -164,6 +165,7 @@ python examples/01_test_connection.py
 - Prints the response
 
 **What you should see:**
+
 If everything is configured correctly, you should see:
 
 - A confirmation message
@@ -180,36 +182,175 @@ All later steps depend on this working.
 
 ---
 
-### Step 3 — Run your first real task (10 min)
+## OpenAI Chat Completions
 
-**Run this script:**
+Now that your connection works, we'll explore different patterns for using the Chat Completions API.
+
+These scripts use the `openai` Python package to demonstrate core API features. They are organized in increasing order of complexity:
+
+### Basic chat completions
+
+**1. Simple chat (`chat.py`)**
+
 ```bash
-python examples/02_translate_text.py
+python examples/chat.py
 ```
 
-**This script:**
+**What it does:**
 
-- Reads a local text file
-- Sends it to the LLM with translation instructions
-- Prints the model output
+- Demonstrates a basic chat completion call
+- Sends a single message
+- Returns a complete response
 
 **What to observe:**
 
-- The input text (in original language)
-- The translated output
-- How quickly the response comes back
+- The request-response pattern
+- How messages are structured
+- The model's complete output
 
-**What's happening:**
+---
 
-```
-1. Script loads text from data/sample_text.txt
-2. Script builds a prompt: "Translate this to Spanish: [text]"
-3. Script sends prompt to OpenAI API
-4. API returns translated text
-5. Script prints the result
+**2. Streaming responses (`chat_stream.py`)**
+
+```bash
+python examples/chat_stream.py
 ```
 
-**Key insight:** The same connection pattern works for any task—translation, summarization, analysis, etc.
+**What it does:**
+
+- Adds `stream=True` to the API call
+- Returns a generator that streams the completion as it's being generated
+- Shows tokens appearing one at a time (like ChatGPT interface)
+
+**What to observe:**
+
+- Response appears progressively
+- Better user experience for long responses
+- Same final result, different delivery
+
+**When to use streaming:**
+
+- Building chat interfaces
+- Long-form content generation
+- When you want to show progress to users
+
+---
+
+**3. Chat with history (`chat_history.py`)**
+
+```bash
+python examples/chat_history.py
+```
+
+**What it does:**
+
+- Creates a back-and-forth chat interface using `input()`
+- Keeps track of past messages
+- Sends conversation history with each API call
+
+**What to observe:**
+
+- The model "remembers" previous messages
+- Context builds up over the conversation
+- Each API call includes the full history
+
+**Key insight:** LLMs are stateless—the model doesn't remember anything. YOU must send the conversation history each time.
+
+---
+
+**4. Chat with history and streaming (`chat_history_stream.py`)**
+
+```bash
+python examples/chat_history_stream.py
+```
+
+**What it does:**
+
+- Combines conversation history with streaming
+- Most similar to production chatbot interfaces
+
+**What to observe:**
+
+- Full chat experience with progressive responses
+- How history management works with streaming
+
+---
+
+## Function calling (Tools)
+
+These scripts demonstrate using the Chat Completions API "tools" feature (also known as function calling).
+
+**What is function calling?**
+
+Instead of only returning text, the model can:
+
+- Decide when to call developer-defined functions
+- Return structured arguments matching your function schema
+- Let you execute code/APIs based on model decisions
+
+**The workflow:**
+
+1. You declare available functions in the `tools` parameter
+2. The model may respond with `message.tool_calls` instead of text
+3. Each tool call includes the function `name` and JSON `arguments`
+4. Your application executes the function and (optionally) sends results back
+
+---
+
+**1. Basic function calling (`function_calling_basic.py`)**
+
+```bash
+python examples/function_calling_basic.py
+```
+
+**What it does:**
+
+- Declares a single `lookup_weather` function
+- Prompts the model with a weather-related question
+- Prints the tool call (if detected) or normal response
+- Does NOT actually execute the function
+
+**What to observe:**
+
+- How to declare function schemas
+- When the model chooses to call vs. respond normally
+- The structure of tool call responses
+
+**Example output:**
+
+```text
+Model chose to call: lookup_weather
+Arguments: {"location": "San Francisco", "unit": "celsius"}
+```
+
+---
+
+**2. Document translation (`translate_ipa_document.py`)**
+
+```bash
+python examples/translate_ipa_document.py
+```
+
+**What it does:**
+
+- Reads the IPA Best Bets document in English (from `data/`)
+- Translates the entire document to Spanish using OpenAI
+- Saves the Spanish version to `docs/ipa-best-bets-2025-es.md`
+- Preserves all markdown formatting
+
+**What to observe:**
+
+- How to handle long document translation
+- File I/O operations with markdown
+- Using lower temperature (0.3) for consistent translation
+- Professional translation prompting for academic content
+
+**When to use function calling:**
+
+- When you need structured outputs (JSON, not prose)
+- When the model should trigger external actions (API calls, database queries)
+- When you want the model to use tools/plugins
+- For multi-step workflows (model decides what to do next)
 
 ---
 
@@ -218,76 +359,98 @@ python examples/02_translate_text.py
 Every LLM API call has these components:
 
 **1. Client** — authenticated connection
+
 ```python
 client = get_client()  # Reads your API key
 ```
 
 **2. Model selection** — which engine to use
+
 ```python
 model="gpt-4o-mini"  # Different models = different speed/cost/quality
 ```
 
 **3. Messages/prompt** — the instructions and data
+
 ```python
 messages=[
   {"role": "system", "content": "You are a helpful assistant"},
-  {"role": "user", "content": "Translate this: Hello"}
+  {"role": "user", "content": "Hello"}
 ]
 ```
 
-**4. API call** — send the request
+**4. Optional parameters** — control behavior
+
+```python
+stream=True,  # Stream responses
+tools=[...],  # Enable function calling
+temperature=0.7,  # Control randomness
+```
+
+**5. API call** — send the request
+
 ```python
 response = client.chat.completions.create(...)
 ```
 
-**5. Output parsing** — extract what you need
-```python
-text = response.choices[0].message.content
-```
+**6. Output parsing** — extract what you need
 
-**Teaching line:** "Client connects, model processes, messages guide, output returns."
+```python
+# For normal responses:
+text = response.choices[0].message.content
+
+# For tool calls:
+tool_calls = response.choices[0].message.tool_calls
+```
 
 ---
 
-## Quick exercises (extra)
+## Quick exercises (if time allows)
 
-1. **Modify the task:** Change the translation target language in `02_translate_text.py`
+**Chat completions:**
 
-2. **Change the model:** Try a different model like `gpt-4o` (note: different cost/speed)
+1. Modify `chat.py` to ask a different question
+2. Compare response times between `chat.py` and `chat_stream.py`
+3. In `chat_history.py`, observe how context affects responses
 
-3. **Add a new task:** Copy `02_translate_text.py` and modify it to summarize instead of translate
+**Function calling:**
 
-4. **Experiment with prompts:** Change the system message and observe how it affects the output
+1. Add a new parameter to `lookup_weather` (e.g., `forecast_days`)
+2. Create a new function declaration for a different task
+3. Test what happens when you ask a question that shouldn't trigger the function
 
 ---
 
 ## Common issues and solutions
 
-**"OPENAI_API_KEY not found"**
+### "OPENAI_API_KEY not found"
 
-→ Your environment variable is not set or not loaded
-→ Check that `.env` file exists and contains your key
+→ Your environment variable is not set or loaded  
+→ Check that `.env` file exists and contains your key  
 → Make sure you activated the virtual environment
 
-**"ModuleNotFoundError"**
+### "ModuleNotFoundError: No module named 'openai'"
 
-→ Your environment is not active or dependencies are not installed
-→ Run `just get-started` again
+→ Your environment is not active or dependencies are not installed  
+→ Run `just get-started` again  
 → Make sure you see `.venv` in your terminal prompt
 
-**"Authentication or permission errors"**
+### "Streaming doesn't work / no output"
 
-→ Your API key is incorrect or expired
-→ Check your OpenAI account dashboard
-→ Generate a new key if needed
+→ Check you're iterating over the stream correctly  
+→ Look for `for chunk in response:` pattern
 
-**"Script runs but no output"**
+### "Function never gets called"
 
-→ Check your internet connection
-→ Look for error messages in the console
-→ Try running `01_test_connection.py` first
+→ Check your function schema matches what the model expects  
+→ Make your prompt clearer about when to use the function  
+→ Try different prompts that clearly need the function
 
-These issues are normal and part of the setup process.
+### "Tool call arguments are wrong"
+
+→ Check your function description is clear  
+→ Verify parameter descriptions explain what's expected  
+→ The model infers from descriptions—be specific
 
 ---
 
@@ -296,8 +459,20 @@ These issues are normal and part of the setup process.
 ✅ How to set up a local Python environment for LLM work
 ✅ How to securely configure API keys
 ✅ What an LLM API call actually is (HTTP request to remote service)
-✅ How to make your first successful API call
+✅ How to make basic chat completions
+✅ How streaming works and when to use it
+✅ How to maintain conversation history
+✅ What function calling is and when it's useful
 ✅ The basic structure of any LLM interaction
+
+---
+
+## Key patterns to remember
+
+**1. Basic completion:** Simple question → answer
+**2. Streaming:** Progressive response delivery
+**3. Conversation history:** YOU manage context, model is stateless
+**4. Function calling:** Model decides when to use tools, YOU execute them
 
 ---
 
@@ -306,24 +481,17 @@ These issues are normal and part of the setup process.
 Now that your foundation works, we can build on it:
 
 **Session 02 (next):** Introduction to embeddings and RAG
+
 - Learn what embeddings are
 - Understand semantic search
 - See how to work with your own documents
 
 **Sessions 03-04 (afternoon):** Practical applications
+
 - Qualitative coding with embeddings
 - Building an internal knowledge chatbot
 
 **Key point:** The setup you completed today is reused for everything else. You won't need to do this again.
-
----
-
-## Key takeaways
-
-1. **LLMs run remotely** — you're making API calls, not running models locally
-2. **API keys are secrets** — never commit them, always use environment variables
-3. **Local setup matters** — reproducible environments prevent "works on my machine" problems
-4. **Same pattern, many uses** — this connection pattern works for any LLM task
 
 ---
 
@@ -332,19 +500,21 @@ Now that your foundation works, we can build on it:
 ### ✅ We did
 
 - Set up a local Python environment
-- Install and import packages
 - Understand how LLM APIs work
-- Make a first, minimal API call
+- Make basic and streaming chat completions
+- Manage conversation history
+- Explore function calling (tools)
 
 ### ❌ We did not
 
-- Prompt engineering
+- Advanced prompt engineering
 - Model evaluation
-- Domain-specific applications
-- Qualitative coding or embeddings
+- Production deployment
+- Complex multi-step workflows
+- Embeddings and RAG (that's next)
 
-Think of this session as **learning how to turn the engine on**.
-The rest comes next.
+Think of this session as **learning the core API patterns**.
+Everything else builds on these fundamentals.
 
 ---
 

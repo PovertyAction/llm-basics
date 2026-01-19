@@ -1050,7 +1050,7 @@ wheels = [
 [[package]]
 name = "llm-basics"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
     { name = "great-tables" },
