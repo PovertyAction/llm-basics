@@ -71,10 +71,29 @@ In this project, API keys are stored as environment variables.
 You should have a file called `.env` (not committed to Git) containing:
 
 ```bash
+# Anthropic API key (recommended)
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# OpenAI API key (optional - if you want to use OpenAI)
 OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Your code reads this key at runtime, without exposing it publicly.
+**Getting an Anthropic API key:**
+
+1. Go to [https://console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+2. Sign up or log in to your account
+3. Create a new API key
+4. Copy the key (it starts with `sk-ant-`)
+5. Add it to your `.env` file as shown above
+
+**Provider selection:**
+
+- If only `ANTHROPIC_API_KEY` is set → uses Anthropic (Claude models)
+- If only `OPENAI_API_KEY` is set → uses OpenAI (GPT models)
+- If both are set → uses Anthropic by default
+- Set `LLM_PROVIDER=openai` or `LLM_PROVIDER=anthropic` to explicitly choose
+
+Your code reads these keys at runtime, without exposing them publicly.
 
 ---
 
@@ -138,11 +157,11 @@ just venv
 
 **After that, activate the environment:**
 
-| Shell | Command |
-|-------|---------|
-| Bash | `.venv/Scripts/activate` |
-| PowerShell | `.venv/Scripts/activate.ps1` |
-| Nushell | `overlay use .venv/Scripts/activate.nu` |
+| Shell      | Command                                     |
+|------------|---------------------------------------------|
+| Bash       | `.venv/Scripts/activate`                    |
+| PowerShell | `.venv/Scripts/activate.ps1`                |
+| Nushell    | `overlay use .venv/Scripts/activate.nu`     |
 
 **What to observe:**
 You should now see your terminal indicating an active environment (usually shows `.venv` in the prompt).
@@ -182,11 +201,11 @@ All later steps depend on this working.
 
 ---
 
-## OpenAI Chat Completions
+## LLM Chat Completions
 
 Now that your connection works, we'll explore different patterns for using the Chat Completions API.
 
-These scripts use the `openai` Python package to demonstrate core API features. They are organized in increasing order of complexity:
+These scripts work with both Anthropic (Claude) and OpenAI (GPT) models, automatically detecting which provider to use based on your API keys. They are organized in increasing order of complexity:
 
 ### Basic chat completions
 
@@ -367,7 +386,7 @@ python examples/translate_ipa_document.py
 **What it does:**
 
 - Reads the IPA Best Bets document in English (from `data/`)
-- Translates the entire document to Spanish using OpenAI
+- Translates the entire document to Spanish using the configured LLM
 - Saves the Spanish version to `data/ipa-best-bets-2025-es.md`
 - Preserves all markdown formatting
 
@@ -400,7 +419,11 @@ client = get_client()  # Reads your API key
 **2. Model selection** — which engine to use
 
 ```python
-model="gpt-4o-mini"  # Different models = different speed/cost/quality
+# Provider auto-detected from your API keys
+provider = get_provider()  # Returns "anthropic" or "openai"
+
+# Select appropriate model for provider
+model = "gpt-4o-mini" if provider == "openai" else "claude-haiku-4-5"
 ```
 
 **3. Messages/prompt** — the instructions and data
@@ -423,17 +446,24 @@ temperature=0.7,  # Control randomness
 **5. API call** — send the request
 
 ```python
-response = client.chat.completions.create(...)
+# Using adapter functions for multi-provider support
+response = create_completion(
+    client=client,
+    provider=provider,
+    model=model,
+    messages=messages,
+    temperature=0.7
+)
 ```
 
 **6. Output parsing** — extract what you need
 
 ```python
-# For normal responses:
-text = response.choices[0].message.content
+# Adapter functions return normalized text
+text = create_completion(...)  # Returns string directly
 
-# For tool calls:
-tool_calls = response.choices[0].message.tool_calls
+# For tool calls, use extract_tool_calls helper
+tool_calls = extract_tool_calls(response, provider)
 ```
 
 ---
@@ -457,33 +487,40 @@ tool_calls = response.choices[0].message.tool_calls
 
 ## Common issues and solutions
 
-### "OPENAI_API_KEY not found"
+### "No API keys found" or "ANTHROPIC_API_KEY not found"
 
-→ Your environment variable is not set or loaded  
-→ Check that `.env` file exists and contains your key  
+→ Your environment variable is not set or loaded
+→ Check that `.env` file exists and contains your API key
 → Make sure you activated the virtual environment
+→ Verify the key format: Anthropic keys start with `sk-ant-`, OpenAI keys start with `sk-proj-`
 
-### "ModuleNotFoundError: No module named 'openai'"
+### "ModuleNotFoundError: No module named 'anthropic'" or "'openai'"
 
-→ Your environment is not active or dependencies are not installed  
-→ Run `just get-started` again  
+→ Your environment is not active or dependencies are not installed
+→ Run `just get-started` again
 → Make sure you see `.venv` in your terminal prompt
+
+### "Which provider is being used?"
+
+→ Each script prints which provider and model it's using
+→ Look for output like "Using anthropic with model: claude-haiku-4-5"
+→ Set `LLM_PROVIDER` environment variable to explicitly choose
 
 ### "Streaming doesn't work / no output"
 
-→ Check you're iterating over the stream correctly  
+→ Check you're iterating over the stream correctly
 → Look for `for chunk in response:` pattern
 
 ### "Function never gets called"
 
-→ Check your function schema matches what the model expects  
-→ Make your prompt clearer about when to use the function  
+→ Check your function schema matches what the model expects
+→ Make your prompt clearer about when to use the function
 → Try different prompts that clearly need the function
 
 ### "Tool call arguments are wrong"
 
-→ Check your function description is clear  
-→ Verify parameter descriptions explain what's expected  
+→ Check your function description is clear
+→ Verify parameter descriptions explain what's expected
 → The model infers from descriptions—be specific
 
 ---
@@ -552,9 +589,35 @@ Everything else builds on these fundamentals.
 
 ---
 
+## Multi-Provider Support
+
+All examples in this session support both Anthropic (Claude) and OpenAI (GPT) models:
+
+**How it works:**
+
+- Scripts automatically detect which API key you've configured
+- Provider-specific differences (API format, parameters) are handled transparently
+- You can switch providers by changing which API key is set in `.env`
+
+**Supported models:**
+
+- **Anthropic:** claude-haiku-4-5 (used throughout examples)
+- **OpenAI:** gpt-4o-mini (fast, cost-effective) and gpt-4o (higher quality)
+
+**Why multi-provider?**
+
+- Compare different models for your use case
+- Avoid vendor lock-in
+- Learn API patterns that work across providers
+- Educational: See how different LLM APIs work
+
+---
+
 ## Acknowledgments
 
 Some exercises and examples in this session were adapted from or inspired by the [Azure Python OpenAI Samples](https://github.com/Azure-Samples/python-openai-demos) repository.
+
+Examples support both Anthropic and OpenAI APIs with automatic provider detection.
 
 ---
 
