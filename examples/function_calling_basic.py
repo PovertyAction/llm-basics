@@ -1,29 +1,44 @@
-"""Demonstrates basic function calling with the OpenAI API.
+"""Demonstrates function calling (without execution).
 
 This script shows how to:
 - Declare a function schema (lookup_weather)
 - Have the model decide when to call the function
-- Parse tool call responses
+- Parse tool call responses from the model
 
-Note: This example does NOT actually execute the function—it just shows
-how the model identifies when and how to call it.
+This example shows the decision-making but doesn't execute the function.
+
+Works with both OpenAI and Anthropic based on which API key is configured.
 """
 
-from src.openai_client import get_client
+import json
+
+from src.llm_client import (
+    create_completion_with_tools,
+    extract_tool_calls,
+    get_client,
+    get_provider,
+)
 
 
 def main():
-    """Demonstrate basic function calling without execution."""
-    # Get authenticated client
+    """Demonstrate function calling without execution."""
+    # Get the provider and client (auto-detected from env vars)
+    provider = get_provider()
     client = get_client()
 
-    # Define the function schema (tools)
+    # Select model based on provider
+    model = "gpt-4o-mini" if provider == "openai" else "claude-haiku-4-5"
+
+    print(f"\nUsing {provider} with model: {model}\n")
+
+    # Define the function schema (tools) in OpenAI format
+    # The adapter will convert to Anthropic format if needed
     tools = [
         {
             "type": "function",
             "function": {
                 "name": "lookup_weather",
-                "description": "Lookup the weather for a given city name or zip code.",
+                "description": "Lookup the weather for a city or zip code.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -43,29 +58,49 @@ def main():
     ]
 
     # Make API call with tools parameter
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
+    response = create_completion_with_tools(
+        client=client,
+        provider=provider,
+        model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful weather assistant."},
-            {"role": "user", "content": "What's the weather like in Bogota?"},
+            {
+                "role": "system",
+                "content": "You are a helpful weather assistant.",
+            },
+            {
+                "role": "user",
+                "content": "What's the temperature in Celsius in Bogota?",
+            },
         ],
         tools=tools,
+        tool_choice="auto",
     )
 
     # Check if the model chose to call a function
-    print("\n✅ Function calling example:\n")
+    print("✅ Function calling demonstration:\n")
 
-    if response.choices[0].message.tool_calls:
+    tool_calls = extract_tool_calls(response, provider)
+
+    if tool_calls:
         # Model decided to call a function
-        tool_call = response.choices[0].message.tool_calls[0]
-        print(f"Model chose to call: {tool_call.function.name}")
-        print(f"Arguments: {tool_call.function.arguments}")
-        print("\nNote: In a real application, you would now execute this function")
-        print("and send the results back to the model.")
+        for tool_call in tool_calls:
+            function_name = tool_call["name"]
+            arguments = tool_call["arguments"]
+
+            # For OpenAI, arguments come as JSON string
+            # For Anthropic, arguments come as dict
+            if isinstance(arguments, str):
+                arguments = json.loads(arguments)
+
+            print(f"Model chose to call: {function_name}")
+            print(f"Arguments: {arguments}")
     else:
         # Model responded with text instead
         print("Model responded with text instead of calling a function:")
-        print(response.choices[0].message.content)
+        if provider == "openai":
+            print(response.choices[0].message.content)
+        else:
+            print(response.content[0].text)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-"""Adds a back-and-forth chat interface using input() which keeps track of past messages and sends them with each chat completion call.
+"""Interactive chat interface with conversation history.
 
 This script demonstrates:
 - Maintaining conversation history across multiple turns
@@ -7,15 +7,23 @@ This script demonstrates:
 - Building context over multiple exchanges
 
 Type 'quit' or 'exit' to end the conversation.
+
+Works with both OpenAI and Anthropic based on which API key is configured.
 """
 
-from src.openai_client import get_client
+from src.llm_client import create_completion, get_client, get_provider
 
 
 def main():
     """Run an interactive chat session with conversation history."""
-    # Get authenticated client
+    # Get the provider and client (auto-detected from env vars)
+    provider = get_provider()
     client = get_client()
+
+    # Select model based on provider
+    model = "gpt-4o-mini" if provider == "openai" else "claude-haiku-4-5"
+
+    print(f"\nUsing {provider} with model: {model}")
 
     # Initialize conversation with system message
     messages = [
@@ -25,7 +33,7 @@ def main():
         },
     ]
 
-    print("\n✅ Chat session started!")
+    print("✅ Chat session started!")
     print("Type 'quit' or 'exit' to end the conversation.\n")
 
     # Chat loop
@@ -35,7 +43,7 @@ def main():
 
         # Check for exit commands
         if user_input.lower() in ["quit", "exit"]:
-            print("\nGoodbye! 👋\n")
+            print("\nGoodbye!\n")
             break
 
         if not user_input:
@@ -45,14 +53,13 @@ def main():
         messages.append({"role": "user", "content": user_input})
 
         # Get response from API (sending full conversation history)
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
+        bot_response = create_completion(
+            client=client,
+            provider=provider,
+            model=model,
             messages=messages,
             temperature=0.7,
         )
-
-        # Extract assistant's reply
-        bot_response = response.choices[0].message.content
 
         # Add assistant message to history
         messages.append({"role": "assistant", "content": bot_response})
