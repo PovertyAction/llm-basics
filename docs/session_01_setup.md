@@ -86,6 +86,14 @@ OPENAI_API_KEY=sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 4. Copy the key (it starts with `sk-ant-`)
 5. Add it to your `.env` file as shown above
 
+**Getting an OpenAI API key:**
+
+1. Go to [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Sign up or log in to your account
+3. Create a new API key (may require adding payment method)
+4. Copy the key (it starts with `sk-proj-`)
+5. Add it to your `.env` file as shown above
+
 **Provider selection:**
 
 - If only `ANTHROPIC_API_KEY` is set → uses Anthropic (Claude models)
@@ -527,14 +535,14 @@ tool_calls = extract_tool_calls(response, provider)
 
 ## What you've learned
 
-✅ How to set up a local Python environment for LLM work
-✅ How to securely configure API keys
-✅ What an LLM API call actually is (HTTP request to remote service)
-✅ How to make basic chat completions
-✅ How streaming works and when to use it
-✅ How to maintain conversation history
-✅ What function calling is and when it's useful
-✅ The basic structure of any LLM interaction
+- ✅ How to set up a local Python environment for LLM work
+- ✅ How to securely configure API keys
+- ✅ What an LLM API call actually is (HTTP request to remote service)
+- ✅ How to make basic chat completions
+- ✅ How streaming works and when to use it
+- ✅ How to maintain conversation history
+- ✅ What function calling is and when it's useful
+- ✅ The basic structure of any LLM interaction
 
 ---
 

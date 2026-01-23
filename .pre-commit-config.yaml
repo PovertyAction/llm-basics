@@ -21,6 +21,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
+        exclude: '.*[-_]es\.md$|.*\.es\.md$'
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
